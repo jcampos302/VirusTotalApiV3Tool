@@ -1,4 +1,4 @@
-# Jorge E. Campo II
+# Jorge E. Campos II
 # 11/12/2022
 
 # Virus Total API v3 bash script to generate report
