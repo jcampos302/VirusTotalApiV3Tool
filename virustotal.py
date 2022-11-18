@@ -4,6 +4,7 @@
 # Virus Total API v3 python script to a small generate report
 
 import sys
+from time import sleep
 import requests as requests
 
 # Test Hash = 92d37a92138659fa75f45ccb87242910
@@ -13,6 +14,54 @@ API_KEY = '<API KEY HERE>'
 # API Link and Header
 URL = "https://www.virustotal.com/api/v3/"
 API_HEADER = {'x-apikey': API_KEY}
+
+
+def parse_data(r):
+    report = r.json()
+
+    print("\n*** Virus Total Report ***\n")
+
+    try:
+        common_name = report['data']['attributes']['names']
+        for i in common_name:
+            print(i)
+    except KeyError:
+        pass
+    try:
+        url_name = report['data']['attributes']['url']
+        print("URL Link Name = " + str(url_name).replace(".", "[.]"))
+    except KeyError:
+        pass
+    try:
+        threat_label = report['data']['attributes']['popular_threat_classification']['suggested_threat_label']
+        print("\nSuggested Threat Label: " + threat_label)
+    except KeyError:
+        pass
+    try:
+        threat_names = report['data']['attributes']['threat_names']
+        print("\nSuggested Threat Label: " + str(threat_names))
+    except KeyError:
+        pass
+    try:
+        id_name = report['data']['id']
+        print("URL Link Name = " + str(id_name).replace(".", "[.]"))
+    except KeyError:
+        pass
+    try:
+        country = report['data']['attributes']['country']
+        print("Country: " + country)
+    except KeyError:
+        pass
+    # Print Analysis Stats
+    try:
+        analysis_stats = report['data']['attributes']['last_analysis_stats']
+        print("\nAnalysis Stats:")
+        print("Harmless: " + str(analysis_stats['harmless']))
+        print("Suspicious:" + str(analysis_stats['suspicious']))
+        print("Malicious: " + str(analysis_stats['malicious']))
+        print("Undetected: " + str(analysis_stats['undetected']) + "\n")
+    except KeyError:
+        print("\nUnable to print Analysis Stats")
 
 
 # Function Space
@@ -34,24 +83,7 @@ def hash_upload(item):
     dir_type = "files/"
     r = get_request(dir_type, item)
     r = check_response(r)
-    file_report_parse(r)
-
-
-def file_report_parse(r):
-    report = r.json()
-    analysis_stats = report['data']['attributes']['last_analysis_stats']
-    common_name = report['data']['attributes']['names']
-    threat_label = report['data']['attributes']['popular_threat_classification']['suggested_threat_label']
-
-    print("Hash Analysis Report:\n")
-    for i in common_name:
-        print(i)
-    print("\nSuggested Threat Label: " + threat_label)
-    print("\nAnalysis Stats:")
-    print("Harmless: " + str(analysis_stats['harmless']))
-    print("Suspicious:" + str(analysis_stats['suspicious']))
-    print("Malicious: " + str(analysis_stats['malicious']))
-    print("Undetected: " + str(analysis_stats['undetected']))
+    parse_data(r)
 
 
 def url_upload(item):
@@ -62,67 +94,34 @@ def url_upload(item):
 
     r = get_request(dir_type, item)
     r = check_response(r)
-    url_report_parse(r)
-
-
-def url_report_parse(r):
-    report = r.json()
-    url_name = report['data']['attributes']['url']
-    threat_names = report['data']['attributes']['threat_names']
-    analysis_stats = report['data']['attributes']['last_analysis_stats']
-
-    print("URL Analysis Report:\n")
-    print("URL Link Name = " + str(url_name).replace(".", "[.]"))
-    print("\nSuggested Threat Label: " + str(threat_names))
-    print("\nAnalysis Stats:")
-    print("Harmless: " + str(analysis_stats['harmless']))
-    print("Suspicious:" + str(analysis_stats['suspicious']))
-    print("Malicious: " + str(analysis_stats['malicious']))
-    print("Undetected: " + str(analysis_stats['undetected']))
+    parse_data(r)
 
 
 def domain_upload(item):
     dir_type = "domains/"
     r = get_request(dir_type, item)
     r = check_response(r)
-    domain_report_parse(r)
-
-
-def domain_report_parse(r):
-    report = r.json()
-    id_name = report['data']['id']
-    analysis_stats = report['data']['attributes']['last_analysis_stats']
-
-    print("Domain Analysis Report:\n")
-    print("URL Link Name = " + str(id_name).replace(".", "[.]"))
-    print("\nAnalysis Stats:")
-    print("Harmless: " + str(analysis_stats['harmless']))
-    print("Suspicious:" + str(analysis_stats['suspicious']))
-    print("Malicious: " + str(analysis_stats['malicious']))
-    print("Undetected: " + str(analysis_stats['undetected']))
+    parse_data(r)
 
 
 def ip_address_upload(item):
     dir_type = "ip_addresses/"
     r = get_request(dir_type, item)
     r = check_response(r)
-    ip_address_report_parse(r)
+    parse_data(r)
 
 
-def ip_address_report_parse(r):
-    report = r.json()
-    id_name = report['data']['id']
-    analysis_stats = report['data']['attributes']['last_analysis_stats']
-    country = report['data']['attributes']['country']
-
-    print("IP Address Analysis Report:\n")
-    print("IP Address = " + str(id_name).replace(".", "[.]"))
-    print("Country: " + country)
-    print("\nAnalysis Stats:")
-    print("Harmless: " + str(analysis_stats['harmless']))
-    print("Suspicious:" + str(analysis_stats['suspicious']))
-    print("Malicious: " + str(analysis_stats['malicious']))
-    print("Undetected: " + str(analysis_stats['undetected']))
+def file_loop_ips(item):
+    f1 = open(item, 'r')
+    lines = f1.readlines()
+    count = 0
+    # Strips the newline character
+    for line in lines:
+        ip_address_upload(line.strip())
+        count += 1
+        if count == 5:
+            sleep(60)
+            count = 0
 
 
 # Checks if object is empty
@@ -140,6 +139,8 @@ match sys.argv[1]:
         domain_upload(sys.argv[2])
     case "-ip":
         ip_address_upload(sys.argv[2])
+    case "-l":
+        file_loop_ips(sys.argv[2])
     case _:
         print("usage: ./virustotal.py [-f: files or hash | -u: urls | -d: domains | -ip: ip address] <object> ")
         exit()
